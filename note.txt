@@ -1,0 +1,192 @@
+============================================================
+TASKBOARD LAB — SUBMISSION PREPARATION NOTES (Thunder Client)
+============================================================
+
+WHAT YOU NEED TO SUBMIT:
+  1. GitHub repo link with two folders: taskboard-api and taskboard-react
+  2. PDF with screenshots of the 8 test requests in Part E
+  3. Screenshot of React app showing projects from the API
+     (browser console open, no CORS error)
+  4. Answers to the 5 reflection questions
+
+============================================================
+STEP 1: RESET DATABASE (start fresh)
+============================================================
+cd "C:\Users\mkent\OneDrive\Documents\School_Shi_3rdYear\MWF\Dc4\finals\Corage_Manatad_Dc4\taskboard-api"
+php artisan migrate:fresh --force
+
+============================================================
+STEP 2: START BOTH SERVERS
+============================================================
+# Server 1 (Laravel API): taskboard-api folder
+php artisan config:clear
+php artisan serve
+   → API running on http://127.0.0.1:8000
+
+# Server 2 (React app): taskboard-react folder (separate terminal)
+# IMPORTANT: Must be on port 5173, NOT 5174
+# If port 5173 is in use, kill it first:
+netstat -ano | findstr :5173
+taskkill /PID <PID> /F
+# Then start explicitly on 5173:
+npm run dev -- --port 5173
+   → React running on http://localhost:5173 (MUST be 5173)
+
+Verify servers:
+  - Laravel:  http://127.0.0.1:8000
+  - React:    http://localhost:5173
+
+============================================================
+STEP 3: RUN THE 8 TEST REQUESTS IN THUNDER CLIENT
+============================================================
+Open VS Code → Thunder Client extension
+Run these requests in order. Screenshot EACH with status code visible.
+
+# — Request 1: Register — POST /api/register
+URL:    http://127.0.0.1:8000/api/register
+Method: POST
+JSON Body:
+  {
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "password123",
+    "password_confirmation": "password123"
+  }
+Expected: 201 + token  ← COPY THIS TOKEN FOR REMAINING TESTS
+
+# — Request 2: List projects without token — GET /api/projects
+URL:    http://127.0.0.1:8000/api/projects
+Method: GET
+Headers:
+  Accept: application/json
+Expected: 401 Unauthorized
+
+# — Request 3: List projects with token — GET /api/projects
+URL:    http://127.0.0.1:8000/api/projects
+Method: GET
+Headers:
+  Accept:          application/json
+  Authorization:   Bearer <PASTE TOKEN FROM STEP 1>
+Expected: 200, empty data array
+
+# — Request 4: Create project — POST /api/projects
+URL:    http://127.0.0.1:8000/api/projects
+Method: POST
+Headers:
+  Accept:          application/json
+  Content-Type:    application/json
+  Authorization:   Bearer <PASTE TOKEN>
+JSON Body:
+  {
+    "name": "Capstone Prep"
+  }
+Expected: 201 + project JSON
+
+# — Request 5: Create task — POST /api/projects/1/tasks
+URL:    http://127.0.0.1:8000/api/projects/1/tasks
+Method: POST
+Headers:
+  Accept:          application/json
+  Content-Type:    application/json
+  Authorization:   Bearer <PASTE TOKEN>
+JSON Body:
+  {
+    "title": "Draft ERD"
+  }
+Expected: 201 + task JSON
+
+# — Request 6: Get project detail — GET /api/projects/1
+URL:    http://127.0.0.1:8000/api/projects/1
+Method: GET
+Headers:
+  Accept:          application/json
+  Authorization:   Bearer <PASTE TOKEN>
+Expected: 200 with owner object and tasks array
+
+# — Request 7: Logout — POST /api/logout
+URL:    http://127.0.0.1:8000/api/logout
+Method: POST
+Headers:
+  Accept:          application/json
+  Authorization:   Bearer <PASTE TOKEN>
+Expected: 200 + {"message": "Logged out"}
+
+# — Request 8: Use old token — GET /api/me
+URL:    http://127.0.0.1:8000/api/me
+Method: GET
+Headers:
+  Accept:          application/json
+  Authorization:   Bearer <OLD TOKEN FROM STEP 1>
+Expected: 401 Unauthorized
+
+============================================================
+STEP 4: BONUS CHECK (403 on second user)
+============================================================
+# — Register a second user — POST /api/register
+JSON Body:
+  {
+    "name": "Second User",
+    "email": "second@example.com",
+    "password": "password123",
+    "password_confirmation": "password123"
+  }
+→ Copy token_2 from response
+
+# — Second user tries to read first user's project — GET /api/projects/1
+URL:    http://127.0.0.1:8000/api/projects/1
+Headers:
+  Authorization: Bearer <token_2>
+Expected: 403 Forbidden
+
+============================================================
+STEP 5: TAKE REACT APP SCREENSHOT
+============================================================
+1. Open Chrome and go to: http://localhost:5173
+2. Log in with email: test@example.com, password: password123
+   (the account you created in Request 1 above)
+3. You will see the Taskboard page with "Capstone Prep" project
+4. Open DevTools (F12) → go to Console tab
+5. Take a screenshot showing:
+   - The project list visible
+   - Console panel with NO errors (no CORS blocked)
+   - The URL bar showing port 5173
+
+============================================================
+STEP 6: REFLECTION QUESTIONS (for your PDF)
+============================================================
+1. In Checkpoint B, why did create() fail on user_id and not on
+   $fillable? What would happen if you added user_id to $fillable?
+
+2. What is the difference between $project->tasks and
+   $project->tasks()? Give one place you used each.
+
+3. Why does the owner key appear in GET /api/projects/{id} but
+   not in GET /api/projects?
+
+4. Postman worked before you configured CORS, but React did not.
+   Why?
+
+5. After logout, the old token returns 401. What exactly did
+   logout() delete, and where is it stored?
+
+============================================================
+STEP 7: UPLOAD AND SUBMIT
+============================================================
+1. Push taskboard-api and taskboard-react to a new GitHub repo
+2. Combine all screenshots into a single PDF
+3. Include the 5 reflection answers in the PDF
+4. Submit the GitHub repo link + PDF + reflection answers
+
+============================================================
+TROUBLESHOOTING: PORT 5173 vs 5174
+============================================================
+React must be on port 5173 (matches CORS allowed_origins).
+If Vite auto-picks 5174, something is using 5173:
+
+netstat -ano | findstr :5173
+→ Get the PID (e.g., 12345)
+taskkill /PID 12345 /F
+npm run dev -- --port 5173
+
+After CORS changes:
+php artisan config:clear
